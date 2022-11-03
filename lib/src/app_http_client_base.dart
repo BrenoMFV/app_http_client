@@ -22,6 +22,8 @@ class AppHttpClient {
 
   final Dio _client;
 
+  Dio get client => _client;
+
   /// If provided, this function which will be invoked when a response exception
   /// occurs, allowing the response exception to be mapped to a custom
   /// exception class which extends [AppHttpClientException].

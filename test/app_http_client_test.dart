@@ -11,7 +11,7 @@ class MockDioCancelToken extends Mock implements CancelToken {}
 
 class MockDioResponse<T> extends Mock implements Response<T> {}
 
-class MockDioError extends Mock implements DioError {}
+class MockDioError extends Mock implements DioException {}
 
 void main() {
   group('AppHttpClient', () {
@@ -232,29 +232,29 @@ void main() {
         when(() => dio.get(any())).thenThrow(Exception());
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(isA<AppHttpClientException>()),
         );
       });
 
       test('wraps an unknown DioError', () async {
         final mockError = MockDioError();
-        when(() => mockError.type).thenReturn(DioErrorType.other);
+        when(() => mockError.type).thenReturn(DioExceptionType.unknown);
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(isA<AppHttpClientException>()),
         );
       });
 
       test('wraps a cancellation DioError', () async {
         final mockError = MockDioError();
-        when(() => mockError.type).thenReturn(DioErrorType.cancel);
+        when(() => mockError.type).thenReturn(DioExceptionType.cancel);
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(
             isA<AppNetworkException>().having(
               (e) => e.reason,
@@ -267,11 +267,11 @@ void main() {
 
       test('wraps a timeout DioError', () async {
         final mockError = MockDioError();
-        when(() => mockError.type).thenReturn(DioErrorType.sendTimeout);
+        when(() => mockError.type).thenReturn(DioExceptionType.sendTimeout);
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(
             isA<AppNetworkException>().having(
               (e) => e.reason,
@@ -286,11 +286,11 @@ void main() {
     group('response exception mapping', () {
       test('wraps a malformed response error', () async {
         final mockError = MockDioError();
-        when(() => mockError.type).thenReturn(DioErrorType.response);
+        when(() => mockError.type).thenReturn(DioExceptionType.badResponse);
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(
             isA<AppNetworkResponseException>()
                 .having(
@@ -313,12 +313,12 @@ void main() {
 
       test('wraps a malformed response error with wrong data type', () async {
         final mockError = MockDioError();
-        when(() => mockError.type).thenReturn(DioErrorType.response);
+        when(() => mockError.type).thenReturn(DioExceptionType.badResponse);
         when(() => mockError.response).thenReturn(MockDioResponse<String>());
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get<int>(path),
+          () async => client.get<int>(path),
           throwsA(
             isA<AppNetworkResponseException>()
                 .having(
@@ -351,24 +351,26 @@ void main() {
         );
         final mockError = MockDioError();
         final mockResponse = MockDioResponse();
-        when(() => mockError.type).thenReturn(DioErrorType.response);
+        when(() => mockError.type).thenReturn(DioExceptionType.badResponse);
         when(() => mockError.response).thenReturn(mockResponse);
 
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
-          throwsA(isA<AppNetworkResponseException>()
-              .having(
-                (e) => e.reason,
-                'reason',
-                equals(AppNetworkExceptionReason.responseError),
-              )
-              .having(
-                (e) => e.exception,
-                'exception',
-                equals(underlyingException),
-              )),
+          () async => client.get(path),
+          throwsA(
+            isA<AppNetworkResponseException>()
+                .having(
+                  (e) => e.reason,
+                  'reason',
+                  equals(AppNetworkExceptionReason.responseError),
+                )
+                .having(
+                  (e) => e.exception,
+                  'exception',
+                  equals(underlyingException),
+                ),
+          ),
         );
       });
 
@@ -377,14 +379,14 @@ void main() {
         final mockResponse = MockDioResponse();
         const mockData = 'mock data';
         const statusCode = 404;
-        when(() => mockError.type).thenReturn(DioErrorType.response);
+        when(() => mockError.type).thenReturn(DioExceptionType.badResponse);
         when(() => mockError.response).thenReturn(mockResponse);
         when(() => mockResponse.data).thenReturn(mockData);
         when(() => mockResponse.statusCode).thenReturn(statusCode);
         when(() => dio.get(any())).thenThrow(mockError);
 
         expect(
-          () async => await client.get(path),
+          () async => client.get(path),
           throwsA(
             isA<AppNetworkResponseException>()
                 .having(
